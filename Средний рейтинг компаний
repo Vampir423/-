@@ -1,0 +1,23 @@
+import matplotlib.pyplot as plt
+
+# Рейтинги компаний
+ratings = {
+    'OZON': 4.866666667,
+    'WB': 4.266666667,
+    'ЛЭТУАЛЬ': 4.714285714
+}
+
+# Создаем диаграмму
+plt.figure(figsize=(8, 6))
+bars = plt.bar(ratings.keys(), ratings.values(), color=['skyblue', 'orange', 'green'])
+
+# Настройка заголовка и осей
+plt.title('Средний рейтинг компаний')
+plt.xlabel('Компания')
+plt.ylabel('Средний рейтинг')
+
+# Добавляем легенду внизу
+plt.legend(bars, ratings.keys(), loc='upper center', bbox_to_anchor=(0.5, -0.1), fancybox=True, shadow=True, ncol=3)
+
+# Отображаем диаграмму
+plt.show()
