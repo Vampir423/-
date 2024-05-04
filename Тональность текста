@@ -1,0 +1,101 @@
+import pandas as pd
+import re
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+import pymorphy2
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import nltk
+from googletrans import Translator
+from collections import Counter
+
+# Загрузка лексикона VADER
+nltk.download('vader_lexicon')
+
+# Функция для очистки текста от лишних символов
+def clear_text(text):
+    return re.sub(r'[^А-яЁё]+', ' ', text).lower().strip()
+
+# Функция для удаления стоп-слов
+def clean_stop_words(text, stopwords):
+    return ' '.join([word for word in text.split() if word not in stopwords])
+
+# Загрузка данных из Excel
+df = pd.read_excel('quotes_ratings.xlsx')
+
+# Получаем цитаты и рейтинги из DataFrame
+quotes = df.iloc[:, ::2]  # Получаем только столбцы с цитатами (четные столбцы)
+ratings = df.iloc[:, 1::2]  # Получаем только столбцы с рейтингами (нечетные столбцы)
+
+# Преобразуем DataFrame в список цитат и список рейтингов
+quotes_list = quotes.values.flatten().tolist()
+ratings_list = ratings.values.flatten().tolist()
+
+# Создаем экземпляр класса для перевода текста
+translator = Translator()
+
+# Переводим цитаты на английский язык
+translated_quotes = [translator.translate(quote, dest='en').text for quote in quotes_list]
+
+# Производим сентимент-анализ переведенных цитат
+sentiments = []
+analyser = SentimentIntensityAnalyzer()
+for quote in translated_quotes:
+    sentiment_score = analyser.polarity_scores(quote)
+    sentiments.append(sentiment_score)
+
+# Создаем DataFrame для хранения результатов сентимент-анализа
+result_df = pd.DataFrame(sentiments)
+result_df['Quote'] = quotes_list  # Добавляем столбец с цитатами
+result_df['Rating'] = ratings_list  # Добавляем столбец с рейтингами
+
+# Установка параметра отображения для вывода всех строк
+pd.set_option('display.max_rows', None)
+
+# Вывод всей таблицы
+print(result_df)
+
+# Определение списка стоп-слов, включая "очень", "чуть", "без" и другие
+stopwords = ["они", "мой","пользоваться", "использование", "очень", "чуть", "без", "кроме", "ней", "вообще", "у", "этой", "этого", "за", "при", "себе", "эту", "кто", "же", "есть", "то", "для", "все", "ещё", "него", "понимаю", "пока", "мне", "после", "во", "его", "нет", "не", "это", "но", "на", "и", "или", "как", "чтобы", "что", "где", "когда", "потому", "поэтому", "также", "так", "в", "из", "с", "по", "я", "о", "а", "к"]
+
+# Создание объекта для морфологического анализа слов
+morph = pymorphy2.MorphAnalyzer()
+
+# Применение функций очистки текста к столбцам с предложениями
+for col in df.columns:
+    if 'РЕЙТИНГ' not in col:  # Если это столбец с предложениями
+        df[col] = df[col].apply(clear_text)
+        df[col] = df[col].apply(lambda x: clean_stop_words(x, stopwords))
+        # Нормализация слов с использованием морфологического анализатора
+        df[col] = df[col].apply(lambda x: ' '.join([morph.parse(word)[0].normal_form for word in x.split()]))
+
+# Преобразование предложений в список слов для облака тегов
+words_list = [word for col in df.columns if 'РЕЙТИНГ' not in col for sentence in df[col].str.split() for word in sentence]
+
+# Создание облака тегов
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(' '.join(words_list))
+
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+
+
+# Создаем DataFrame для хранения результатов сентимент-анализа
+result_df = pd.DataFrame(sentiments)
+result_df['Quote'] = quotes_list  # Добавляем столбец с цитатами
+result_df['Rating'] = ratings_list  # Добавляем столбец с рейтингами
+
+# Вычисляем корреляцию между оценкой compound и рейтингом комментария
+correlation = result_df['compound'].corr(result_df['Rating'])
+
+# Выводим результат корреляции
+print("Коэффициент корреляции между оценкой (compound) и рейтингом комментария:", correlation)
+# Считаем частоту слов
+word_counter = Counter(words_list)
+# Создаем DataFrame из результатов подсчета
+word_freq_df = pd.DataFrame(word_counter.items(), columns=['Word', 'Frequency'])
+# Сортируем по частоте встречаемости слов
+word_freq_df = word_freq_df.sort_values(by='Frequency', ascending=False)
+# Выводим топ-10 наиболее часто встречаемых слов
+print(word_freq_df.head(10))
