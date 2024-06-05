@@ -19,6 +19,10 @@ def clear_text(text):
 def clean_stop_words(text, stopwords):
     return ' '.join([word for word in text.split() if word not in stopwords])
 
+# Чтение списка стоп-слов из файла
+with open('stop_words.txt', 'r', encoding='utf-8') as file:
+    stopwords = file.read().splitlines()
+
 # Загрузка данных из Excel
 df = pd.read_excel('quotes_ratings.xlsx')
 
@@ -54,9 +58,6 @@ pd.set_option('display.max_rows', None)
 # Вывод всей таблицы
 print(result_df)
 
-# Определение списка стоп-слов, включая "очень", "чуть", "без" и другие
-stopwords = ["они", "мой","пользоваться", "использование", "очень", "чуть", "без", "кроме", "ней", "вообще", "у", "этой", "этого", "за", "при", "себе", "эту", "кто", "же", "есть", "то", "для", "все", "ещё", "него", "понимаю", "пока", "мне", "после", "во", "его", "нет", "не", "это", "но", "на", "и", "или", "как", "чтобы", "что", "где", "когда", "потому", "поэтому", "также", "так", "в", "из", "с", "по", "я", "о", "а", "к"]
-
 # Создание объекта для морфологического анализа слов
 morph = pymorphy2.MorphAnalyzer()
 
@@ -79,8 +80,6 @@ plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis('off')
 plt.show()
 
-
-
 # Создаем DataFrame для хранения результатов сентимент-анализа
 result_df = pd.DataFrame(sentiments)
 result_df['Quote'] = quotes_list  # Добавляем столбец с цитатами
@@ -91,11 +90,15 @@ correlation = result_df['compound'].corr(result_df['Rating'])
 
 # Выводим результат корреляции
 print("Коэффициент корреляции между оценкой (compound) и рейтингом комментария:", correlation)
+
 # Считаем частоту слов
 word_counter = Counter(words_list)
+
 # Создаем DataFrame из результатов подсчета
 word_freq_df = pd.DataFrame(word_counter.items(), columns=['Word', 'Frequency'])
+
 # Сортируем по частоте встречаемости слов
 word_freq_df = word_freq_df.sort_values(by='Frequency', ascending=False)
+
 # Выводим топ-10 наиболее часто встречаемых слов
 print(word_freq_df.head(10))
