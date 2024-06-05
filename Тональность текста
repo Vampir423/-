@@ -7,6 +7,8 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
 from googletrans import Translator
 from collections import Counter
+from sklearn.metrics import mean_squared_error
+import numpy as np
 
 # Загрузка лексикона VADER
 nltk.download('vader_lexicon')
@@ -80,11 +82,6 @@ plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis('off')
 plt.show()
 
-# Создаем DataFrame для хранения результатов сентимент-анализа
-result_df = pd.DataFrame(sentiments)
-result_df['Quote'] = quotes_list  # Добавляем столбец с цитатами
-result_df['Rating'] = ratings_list  # Добавляем столбец с рейтингами
-
 # Вычисляем корреляцию между оценкой compound и рейтингом комментария
 correlation = result_df['compound'].corr(result_df['Rating'])
 
@@ -102,3 +99,27 @@ word_freq_df = word_freq_df.sort_values(by='Frequency', ascending=False)
 
 # Выводим топ-10 наиболее часто встречаемых слов
 print(word_freq_df.head(10))
+
+# Визуализация: scatter plot для оценки сентимента и рейтинга
+plt.figure(figsize=(10, 5))
+plt.scatter(result_df['compound'], result_df['Rating'])
+plt.xlabel('Compound Sentiment Score')
+plt.ylabel('Rating')
+plt.title('Scatter Plot of Compound Sentiment Score vs Rating')
+plt.show()
+
+# Вычисление и вывод статистик
+print("Сводная статистика для оценок настроений:")
+print(result_df['compound'].describe())
+
+print("Сводная статистика для рейтингов:")
+print(result_df['Rating'].describe())
+
+# Нормализация данных для оценки RMSE
+normalized_ratings = (result_df['Rating'] - result_df['Rating'].min()) / (result_df['Rating'].max() - result_df['Rating'].min())
+normalized_compound = (result_df['compound'] - result_df['compound'].min()) / (result_df['compound'].max() - result_df['compound'].min())
+
+# Вычисление RMSE
+rmse = np.sqrt(mean_squared_error(normalized_ratings, normalized_compound))
+
+print("Среднеквадратическая ошибка (RMSE) между нормализованными рейтингами и оценками настроений:", rmse)
